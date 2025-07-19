@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const cros = require("cors");
 const User = require("./models/user");
+const authMiddleware = require("./middleware/auth");
 
 const PORT = 5000;
 
-dotenv.config();
+dotenv.config({ path: ".env.local" });
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
+app.use(cros());
 
 // const userRoutes = require("./routes/user");
 // app.use("/user", userRoutes);
@@ -21,6 +25,9 @@ app.get("/", (req, res) => {
   res.send("Hello from express");
 });
 
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/users", require("./routes/user"));
+
 app.post("/users", async (req, res) => {
   try {
     console.log("📦 Incoming data:", req.body);
@@ -31,6 +38,11 @@ app.post("/users", async (req, res) => {
     console.error("❌ Error creating user:", error.message);
     res.status(500).json({ error: "Failed to create user" });
   }
+});
+
+app.get("/me", authMiddleware, async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password");
+  res.json(user);
 });
 
 // Route: Get all users
